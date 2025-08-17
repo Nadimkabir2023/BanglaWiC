@@ -1,0 +1,6 @@
+﻿model,thresh,dev_f1,dev_acc,test_f1,test_acc,pred_path
+sahajbert,0.8780638873577118,0.7309126594700687,0.7091641917691981,0.7007738607050731,0.6740046838407494,C:\Users\Student\Downloads\projecting_sentences-main\projecting_sentences-main\Result\zero_shot_result_uncapped\sahajbert_zeroshot_test_predictions.csv
+muril,0.9957083761692047,0.7140144322066084,0.6805260924904539,0.6975220151546181,0.6540983606557377,C:\Users\Student\Downloads\projecting_sentences-main\projecting_sentences-main\Result\zero_shot_result_uncapped\muril_zeroshot_test_predictions.csv
+labse,0.29019004106521606,0.6737124144090503,0.5350021213406874,0.6627121436810018,0.5206088992974239,C:\Users\Student\Downloads\projecting_sentences-main\projecting_sentences-main\Result\zero_shot_result_uncapped\labse_zeroshot_test_predictions.csv
+e5,0.7938922643661499,0.6753246753246753,0.5545184556639796,0.6690319310694374,0.5412177985948478,C:\Users\Student\Downloads\projecting_sentences-main\projecting_sentences-main\Result\zero_shot_result_uncapped\e5_zeroshot_test_predictions.csv
+banglabert,0.6041451990604401,0.6724601042818771,0.5602460755197285,0.6714611471671637,0.5613583138173303,C:\Users\Student\Downloads\projecting_sentences-main\projecting_sentences-main\Result\zero_shot_result_uncapped\banglabert_zeroshot_test_predictions.csv

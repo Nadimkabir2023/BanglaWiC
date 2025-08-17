@@ -1,0 +1,12 @@
+{
+  "model": "sahajbert",
+  "hf_id": "neuropark/sahajBERT",
+  "regime_frac": 0.2,
+  "train_size": 1022,
+  "dev_size": 218,
+  "test_size": 194,
+  "batch_size": 16,
+  "max_epochs": 5,
+  "lr": 2e-05,
+  "warmup_ratio": 0.06
+}

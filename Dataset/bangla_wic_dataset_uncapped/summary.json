@@ -1,0 +1,29 @@
+{
+  "train": {
+    "total": 103714,
+    "pos_neg": [
+      51857,
+      51857,
+      0.5
+    ]
+  },
+  "dev": {
+    "total": 4714,
+    "pos_neg": [
+      2357,
+      2357,
+      0.5
+    ]
+  },
+  "test": {
+    "total": 4270,
+    "pos_neg": [
+      2135,
+      2135,
+      0.5
+    ]
+  },
+  "caps": {
+    "MAX_PARTNERS_PER_SENT": null
+  }
+}

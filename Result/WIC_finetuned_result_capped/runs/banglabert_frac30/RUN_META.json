@@ -1,0 +1,12 @@
+{
+  "model": "banglabert",
+  "hf_id": "sagorsarker/bangla-bert-base",
+  "regime_frac": 0.3,
+  "train_size": 1532,
+  "dev_size": 218,
+  "test_size": 194,
+  "batch_size": 16,
+  "max_epochs": 5,
+  "lr": 2e-05,
+  "warmup_ratio": 0.06
+}

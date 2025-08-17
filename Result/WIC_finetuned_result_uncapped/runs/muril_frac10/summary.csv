@@ -1,0 +1,2 @@
+﻿model,hf_id,regime_frac,train_size,dev_size,test_size,best_dev_f1,test_acc,test_f1
+muril,google/muril-base-cased,0.1,10372,4714,4270,0.8448060075093867,0.8269320843091335,0.8286575469510782

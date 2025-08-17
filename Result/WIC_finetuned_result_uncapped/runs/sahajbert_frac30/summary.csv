@@ -1,0 +1,2 @@
+﻿model,hf_id,regime_frac,train_size,dev_size,test_size,best_dev_f1,test_acc,test_f1
+sahajbert,neuropark/sahajBERT,0.3,31114,4714,4270,0.8839012446439503,0.8637002341920375,0.8724243752740026

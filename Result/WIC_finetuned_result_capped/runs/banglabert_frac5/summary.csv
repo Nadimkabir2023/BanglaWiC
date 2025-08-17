@@ -1,0 +1,2 @@
+﻿model,hf_id,regime_frac,train_size,dev_size,test_size,best_dev_f1,test_acc,test_f1
+banglabert,sagorsarker/bangla-bert-base,0.05,256,218,194,0.7083333333333334,0.6237113402061856,0.6755555555555556

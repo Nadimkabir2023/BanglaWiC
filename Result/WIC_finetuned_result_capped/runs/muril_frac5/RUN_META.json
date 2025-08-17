@@ -1,0 +1,12 @@
+{
+  "model": "muril",
+  "hf_id": "google/muril-base-cased",
+  "regime_frac": 0.05,
+  "train_size": 256,
+  "dev_size": 218,
+  "test_size": 194,
+  "batch_size": 16,
+  "max_epochs": 5,
+  "lr": 2e-05,
+  "warmup_ratio": 0.06
+}

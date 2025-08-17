@@ -1,0 +1,2 @@
+﻿model,hf_id,regime_frac,train_size,dev_size,test_size,best_dev_f1,test_acc,test_f1
+labse,sentence-transformers/LaBSE,0.2,1022,218,194,0.6666666666666666,0.6701030927835051,0.6981132075471698

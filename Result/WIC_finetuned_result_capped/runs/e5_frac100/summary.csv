@@ -1,0 +1,2 @@
+﻿model,hf_id,regime_frac,train_size,dev_size,test_size,best_dev_f1,test_acc,test_f1
+e5,intfloat/multilingual-e5-base,1.0,5106,218,194,0.7228070175438597,0.6804123711340206,0.7459016393442623
