@@ -1,132 +1,138 @@
 # BanglaWiC
-BanglaWiC: A WiC-Style Polysemy Dataset, Multilingual Transformer Benchmarks, and the Limits of Cross-Lingual Transfer
 
-# Bangla WiC Dataset Construction & WSD Evaluation Pipeline
+*A WiC-Style Polysemy Dataset and Multilingual Transformer Benchmarks*
 
-A complete, end-to-end pipeline to build a Bangla Word-in-Context (WiC) dataset and evaluate word-sense clustering across multiple multilingual sentence-embedding models. It covers: corpus preprocessing, regex tokenization, lemma-aware retrieval with suffix rules, multi-corpus merging, interactive annotation (SahajBERT embeddings + 2D projection), gold/unannotated merging with caps, multi-model clustering & summaries, strict per-lemma feature-level ensemble, and finally WiC dataset construction (capped/uncapped) with zero-shot and few/full-shot evaluation.
+> **Author:** Nadim Kabir • **Supervisor:** Dr Haim Dubossarsky
+> **Course:** Big Data Processing (MSc Big Data Science)
 
-Many scripts use Windows paths in the examples; replace with your own paths as needed.
+---
 
-# Table of Contents
+## TL;DR
 
-- Pipeline Overview
-- Repository Structure
-- Installation
-- Step 1 — Corpus Prep & Retrieval
-- Step 2 — Annotation, Merging & Model Evaluation
-- Step 3 — Build WiC & Run Evaluations
-- Outputs
-- Reproducibility
-- References (Harvard style)
-- License
-- Acknowledgements
+This repo releases **Bangla-WiC**, a span-aware Bangla Word-in-Context dataset and code to:
 
-# Pipeline Overview
+1. Harvest & prepare corpora,
+2. Annotate via projection-assisted labeling
+3. Build **capped/uncapped** WiC splits,
+4. Run **zero-shot**, **few-/full-shot fine-tuning**, and a **weighted feature-level ensemble (WFE)**.
 
-1. Preprocess corpora
-Filter CSV body fields → regex sentence split (Bangla “।”, !, ?) with short-sentence filter → retrieve sentences for target lemmas using suffix-aware regex → merge & shuffle per lemma across corpora.
+**Headline results:** 
+- Best single encoder **SahajBERT** (Acc **0.842** / F1 **0.837**)
+- **WFE** (+0.040 Acc / +0.041 F1).
+- Fine-tuned WiC on the uncapped set peaks at **F1 0.891**.
 
-2. Annotate & consolidate
-Compute lemma offsets for labeled CSVs; create “projected” subsets; interactively annotate sentences via SahajBERT embeddings + UMAP/MDS/t-SNE/PCA; merge annotated + unannotated with caps; evaluate clustering across many models; print/plot session summaries; run a strict per-lemma Top-6 weighted feature-level ensemble.
+---
 
-3. Build WiC & evaluate
-Create WSD gold table → generate WiC pairs (capped or uncapped) → zero-shot similarity baselines → few/full-shot fine-tuning with early stopping and consolidated result tables.
+## What’s inside
 
-Installation
-# Python 3.9–3.11 recommended
-pip install -r requirements.txt
+```
+PROJECTING_SENTENCES-MAIN/
+├─ Dataset/
+│  ├─ bangla_wic_dataset_capped/
+│  │  ├─ wic_train.json • wic_dev.json • wic_test.json • summary.json
+│  ├─ bangla_wic_dataset_uncapped/
+│  │  ├─ wic_train.json • wic_dev.json • wic_test.json • summary.json
+│  ├─ Gold_dataset/               # gold, sense-labeled sentences (+ spans)
+│  ├─ Merged_dataset/             # per-lemma annotated+unannotated merges
+│  └─ bangla_wsd_dataset.csv      # consolidated gold WSD table
+├─ Result/
+│  ├─ wsd_perf/                   # per-model clustering perf (ours/classmate)
+│  ├─ wsd_perf_ensemble/          # strict per-lemma ensemble sweeps
+│  ├─ zero_shot_result_{capped,uncapped}/
+│  └─ WIC_finetuned_result_{capped,uncapped}/
+├─ functions.py                   # interactive projection + span utilities
+├─ s1_corpus_prep.ipynb           # Step 1: corpus prep & retrieval
+├─ s2_annotation_merge_eval_ensemble.ipynb  # Step 2: annotate + merge + eval + ensemble
+└─ s3_wic_build_train.ipynb       # Step 3: build WiC + zero-shot + fine-tune
+```
 
-# If needed individually:
-pip install sentence-transformers torch umap-learn scikit-learn pandas numpy matplotlib plotly ipywidgets
-# Bangla helpers some scripts use
-pip install bangla-stemmer bnlp-toolkit
+### Short file names (suggested aliases)
 
+* **Step 1:** `s1_corpus_prep.ipynb` (alias: `step1_corpus.ipynb`)
+* **Step 2:** `s2_annotation_merge_eval_ensemble.ipynb` (alias: `step2_annot_eval.ipynb`)
+* **Step 3:** `s3_wic_build_train.ipynb` (alias: `step3_wic_train.ipynb`)
 
-- For Plotly + ipywidgets interactivity inside Jupyter, ensure widgets are enabled (e.g., JupyterLab 3+ usually works out-of-the-box).
-- Install a Bangla-capable font (e.g., Nirmala UI) if your plots show missing glyphs.
+---
 
-# Step 1 — Corpus Prep & Retrieval
-Prothom Alo: Batch filter body column
-Scans a folder of CSVs, extracts the body column when present, and writes body-only CSVs to an output folder. Creates the folder if missing and logs per-file status.
+## Setup
 
-Regex-based Bangla sentence tokenization (+ length filter)
-Reads each body CSV, splits into sentences by Bangla danda “।”, !, ?, removes very short sentences (≤ 2 words), and writes one sentence per line to .txt files.
+**Python** ≥ 3.9. Recommended to use a fresh venv/conda env.
 
-Keyword-aware sentence retrieval (lemma + suffixes)
-From tokenized .txt files, retrieves sentences that contain any target lemma or lemma + common Bangla inflectional suffixes, using a comprehensive boundary-aware regex. Writes per-lemma text files and prints counts.
+```bash
+pip install -U pandas numpy scikit-learn umap-learn plotly ipywidgets
+pip install -U torch torchvision torchaudio  # pick CUDA/CPU build as appropriate
+pip install -U transformers sentence-transformers
+```
 
-Multi-corpus merger & shuffler
-Given per-lemma .txt sets from multiple corpora (e.g., Prothom Alo, IndicNLP, BNWaC), discovers all lemmas, loads, concatenates, strips blanks, shuffles, and writes one combined file per lemma to a target folder.
+---
 
-# Step 2 — Annotation, Merging & Model Evaluation
-Lemma offset annotator (labeled CSVs)
-Loads a labeled CSV, infers lemma from the file, finds character start/end offsets of the lemma in each sentence (whole-word preferred; substring fallback), and saves new columns.
+## Data sources (high level)
 
-Projected dataset creator (first 1,200)
-Reads a per-lemma .txt (one sentence per line), keeps the first 1,200 sentences, and writes a UTF-8-SIG CSV.
+* **IndicNLP Bangla (tokenised)** – curated monolingual text (no extra sent-tokenisation).
+* **BNWaC via SketchEngine (tokenised)** – broad web text with de-duplication.
+* **Prothom Alo news archive (CSV)** – modern news; we extract the **`body`** field and sentence-segment.
 
-Interactive annotation with SahajBERT embeddings
-Loads up to the first 3000 non-empty sentences, encodes with neuropark/sahajBERT, projects to 2D (UMAP/MDS/t-SNE/PCA), and renders an interactive Plotly scatter where you click to label clusters. Saves labeled selections (lemma, sentence, sense, start, end) as the gold dataset.
+All released files here are **sentence-level** and free of personal identifiers. Please respect the original licences of the upstream corpora you harvest.
 
-Merge annotated + unannotated with caps
-Per lemma, normalize whitespace, deduplicate, and enforce a MAX_TOTAL cap that prioritizes annotated rows. Align unannotated to the annotated schema (empty non-sentence fields) and save merged CSVs (UTF-8 with BOM).
+---
 
-Multi-model clustering & performance logging
-For each merged lemma CSV:
-- Encode sentences with multiple backbones (e.g., MuRIL, XLM-R, IndicBERT, E5, mBERT, BanglaBERT, SahajBERT, LaBSE).
-- 2D projection via UMAP for plotting.
-- K-Means on annotated only (number of clusters = unique senses).
-- Align cluster IDs to gold senses with the Hungarian algorithm, compute Accuracy and macro-F1.
-- Plot a grid (lemmas × models), save <lemma>_performance.csv and append to model_performance_master.csv.
-- Print session summary table and bar charts (mean ± std).
+## Reproduce the pipeline
 
-Strict per-lemma Top-6 weighted feature-level ensemble
-Fuse SahajBERT, MuRIL, LaBSE, E5, XL-Lexeme, IndicBERT by:
-- L2-normalize → weight by per-lemma F1 (from model_performance_master.csv) → concatenate → optional PCA → UMAP → K-Means (annotated only).
-- Save per-lemma CSV and append to an ensemble master; paginate plots over a 6×8 grid.
+### Step 1 — Corpus prep & retrieval (`s1_corpus_prep.ipynb`)
 
-# Step 3 — Build WiC & Run Evaluations
-Build WSD gold table
-Sweep a folder of gold files (*_labelled_sentences.csv/.xlsx), validate schema, coerce sense_id, attach optional sense gloss, assign robust sent_id, and write a consolidated CSV (UTF-8 + BOM).
+* Extract `body` from Prothom Alo CSVs → sentence-tokenise (Bangla regex), drop ultra-short lines.
+* Keyword-aware retrieval with suffix matching (per-lemma sentence pools).
+* Merge IndicNLP / BNWaC / Prothom Alo per lemma and **shuffle** to reduce corpus-order bias.
 
-Build WiC (capped/uncapped)
-From the gold table, form positive (same-sense) and negative (cross-sense) pairs per lemma:
-- Capped: limit partners per sentence (e.g., 32).
-- Uncapped: no partner cap.
-- Deterministic train/dev/test split via seeded hashing (no sentence overlap across splits), rebalance labels, shuffle, and write wic_train.json, wic_dev.json, wic_test.json + a split summary.
+### Step 2 — Annotation, merge, diagnostics, ensemble (`s2_annotation_merge_eval_ensemble.ipynb`)
 
-Zero-shot WiC evaluator
-Insert [TGT], [/TGT] markers around spans; embed sentence pairs; compute cosine similarity; choose dev threshold that maximizes F1; report test F1/Acc; save predictions and CSV summary for each model.
+* **Interactive projection & labeling**: encode sentences (e.g., SahajBERT), reduce (UMAP/t-SNE), click-label clusters, save **gold** CSV with offsets.
 
-Few/full-shot fine-tuning
-Trainer-free PyTorch loop:
-- Add [TGT], [/TGT] to tokenizer, dynamic padding, AdamW + linear warmup/decay.
-- Support few-shot regimes (5/10/20/30%) and full-shot (100%).
-- Early stopping on dev F1; save the best checkpoint & per-epoch CSV logs.
-- Evaluate on test, aggregate to ALL_results.csv and a pivot ALL_results_pivot.csv.
+  * Utilities include robust target span finding: exact whole-word first, then Levenshtein fallback (see `get_positions(...)` in **`functions.py`**) .
+* Build **merged** per-lemma CSVs (annotated first, capped total).
+* **Unsupervised diagnostics**: K-Means on the annotated subset + Hungarian alignment → **Acc / macro-F1** per lemma & model.
+* **WFE**: strict per-lemma fusion of the **top-6** backbones (SahajBERT, MuRIL, LaBSE, E5, XL-lexeme, IndicBERT) weighted by per-lemma F1.
 
-# Outputs
-- Per-lemma .txt: extracted & merged sentences.
-- Gold CSVs: (lemma, sentence, sense, start, end) from interactive labeling.
-- Merged per-lemma CSVs: annotated + unannotated (capped).
-- Per-lemma performance CSVs: <lemma>_performance.csv.
-- Master performance tables: model_performance_master.csv, ensemble6_wfe_master.csv.
-- Plots: grids of UMAP scatter plots (per word × model) and summary bar charts.
-- WiC JSONs: wic_train.json, wic_dev.json, wic_test.json + summary.
+### Step 3 — Build WiC & train/evaluate (`s3_wic_build_train.ipynb`)
 
-# Reproducibility
-- Random seeds are set where applicable (K-Means, UMAP, train loops).
-- Splits are deterministic using seeded hashing of sent_id.
-- The strict ensemble requires per-lemma F1 for each of the 6 models; run the per-model evaluator first to populate model_performance_master.csv.
+* Convert the gold WSD table into **WiC**: positives (same sense), negatives (cross sense), **sentence-disjoint** splits.
+* Two pairing **modes**: **capped** (MAX\_PARTNERS\_PER\_SENT=32) and **uncapped** (no cap).
+* **Zero-shot**: encode pairs with \[TGT]…\[/TGT], sweep a dev threshold, report test **Acc/F1**.
+* **Few-/full-shot fine-tuning**: 5%→100% regimes with early stopping on dev macro-F1; save best checkpoints & CSV summaries.
 
-# References (Harvard style)
-- Goworek, R. (no date) projecting_sentences. GitHub. Available at: https://github.com/roksanagow/projecting_sentences (Accessed: 18 August 2025).
-- Goworek, R., Karlcut, H., Shezad, H., Darshana, N., Mane, A., Bondada, S., Sikka, R., Mammadov, U., Allahverdiyev, R., Purighella, S., Gupta, P., Ndegwa, M., Tran, B.K. and Dubossarsky, H. (no date) ‘SenWiCh: Sense-Annotation of Low-Resource Languages for WiC using Hybrid Methods’. Preprint.
-The interactive annotation helper (functions.py) adapts the projecting/labeling workflow from the repository above.
+---
 
-# License
-Add your chosen license here (e.g., MIT). If you redistribute data from third-party corpora, ensure you follow their licenses/terms.
+## Key results
 
-# Acknowledgements
-- Thanks to the maintainers/authors of Sentence-Transformers, Hugging Face Transformers, UMAP, scikit-learn, and the Bangla NLP community resources.
-- Special acknowledgement to the projecting_sentences project and the SenWiCh paper for inspiring the interactive projection + annotation workflow.
+* **Unsupervised (annotated subset, K-Means + Hungarian):**
+
+  * Best single model: **SahajBERT** — Acc **0.842**, F1 **0.837**.
+  * **WFE (top-6)** — Acc **0.882**, F1 **0.878** (**+0.040 / +0.041** over SahajBERT).
+* **Zero-shot WiC:** modest; ranking depends on pairing density (capped vs uncapped).
+* **Fine-tuned WiC (uncapped):** up to **F1 0.891** (SahajBERT), LaBSE/MuRIL close behind.
+
+Outputs are written under `Result/`:
+
+* `wsd_perf/`, `wsd_perf_ensemble/` – clustering diagnostics (CSVs + plots).
+* `zero_shot_result_{capped,uncapped}/` – per-model zero-shot summaries/predictions.
+* `WIC_finetuned_result_{capped,uncapped}/` – regime curves, checkpoints, pivots.
+
+---
+
+## Models you can plug in
+
+mBERT, XLM-R, **MuRIL**, IndicBERT, **SahajBERT**, **LaBSE**, E5, **XL-lexeme**, BanglaBERT (and paraphrase SBERTs).
+Add/change backbones in the model lists inside the notebooks.
+
+---
+
+## License
+
+The code and dataset are shared for academic, non-commercial use. Respect upstream corpus licences.
+
+---
+
+## Acknowledgments
+
+Thanks to **Prof. Haim Dubossarsky** for guidance, **Swarnendu Moitra** for assistance, and the **QMUL MSc BDS** programme. Community models & datasets credited throughout the notebooks and references.
+
