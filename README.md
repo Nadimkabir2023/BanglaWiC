@@ -44,7 +44,7 @@ PROJECTING_SENTENCES-MAIN/
 ├─ s1_corpus_prep.ipynb           # Step 1: corpus prep & retrieval
 ├─ s2_annotation_merge_eval_ensemble.ipynb  # Step 2: annotate + merge + eval + ensemble
 └─ s3_wic_build_train.ipynb       # Step 3: build WiC + zero-shot + fine-tune
-└─ Bengla_sense_lists.csv         # Bengla sense lists
+└─ Bengla_sense_lists.ods         # Bengla sense lists
 ```
 
 ### Short file names (suggested aliases)
